@@ -22,6 +22,7 @@ public class MouthPositionEstimator : UdonSharpBehaviour
     [HideInInspector] public Quaternion mouthRotation = Quaternion.identity;
     [HideInInspector] public float avatarScale = 1f;
     [HideInInspector] public bool headBoneCorrectionApplied;
+    [HideInInspector] public int mouthPoseFrame = -1;
 
     private VRCPlayerApi localPlayer;
 
@@ -33,6 +34,19 @@ public class MouthPositionEstimator : UdonSharpBehaviour
 
     public override void PostLateUpdate()
     {
+        RefreshMouthPose();
+    }
+
+    // PostLateUpdate内の利用者からも呼ぶ。同じフレームでは推定結果を共有する。
+    public void RefreshMouthPose()
+    {
+        if (!enabled || !gameObject.activeInHierarchy)
+        {
+            InvalidateEstimate();
+            return;
+        }
+        if (hasMouthPose && mouthPoseFrame == Time.frameCount) return;
+
         // ClientSimなどでプレイヤーの初期化が遅れた場合にも再取得する。
         if (!Utilities.IsValid(localPlayer))
             localPlayer = Networking.LocalPlayer;
@@ -69,6 +83,7 @@ public class MouthPositionEstimator : UdonSharpBehaviour
         // 設計書の式(1a)。回転はHead Trackingの回転をそのまま使う。
         mouthPosition = head.position + head.rotation * mouthOffset;
         mouthRotation = head.rotation;
+        mouthPoseFrame = Time.frameCount;
         hasMouthPose = true;
         UpdateDebugMarker();
     }
@@ -95,6 +110,7 @@ public class MouthPositionEstimator : UdonSharpBehaviour
     private void InvalidateEstimate()
     {
         hasMouthPose = false;
+        mouthPoseFrame = -1;
         mouthPosition = Vector3.zero;
         mouthRotation = Quaternion.identity;
         avatarScale = 1f;
