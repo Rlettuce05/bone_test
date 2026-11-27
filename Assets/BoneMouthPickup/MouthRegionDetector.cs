@@ -22,6 +22,7 @@ public class MouthRegionDetector : UdonSharpBehaviour
     // ローカル専用。無効時はfalse / +Infinity。取得の可否そのものではない。
     [Header("Runtime outputs (do not edit)")]
     public bool hasRegionResult;
+    public int regionResultFrame = -1;
     public bool isBitePointInside;
     public float regionValueD = float.PositiveInfinity;
     public Vector3 bitePointHeadLocal;
@@ -29,6 +30,12 @@ public class MouthRegionDetector : UdonSharpBehaviour
         MinimumRadius, MinimumRadius, MinimumRadius);
 
     public override void PostLateUpdate()
+    {
+        RefreshRegion();
+    }
+
+    // 後続判定器もPostLateUpdateから呼ぶ。推定→領域の順序を明示する。
+    public void RefreshRegion()
     {
         if (!enabled || !gameObject.activeInHierarchy ||
             !Utilities.IsValid(mouthEstimator) || !Utilities.IsValid(bitePoint) ||
@@ -74,6 +81,7 @@ public class MouthRegionDetector : UdonSharpBehaviour
         }
 
         hasRegionResult = true;
+        regionResultFrame = Time.frameCount;
         isBitePointInside = regionValueD <= 1f;
         UpdateDebugEllipsoid();
     }
@@ -94,6 +102,7 @@ public class MouthRegionDetector : UdonSharpBehaviour
     private void InvalidateRegion()
     {
         hasRegionResult = false;
+        regionResultFrame = -1;
         isBitePointInside = false;
         regionValueD = float.PositiveInfinity;
         bitePointHeadLocal = Vector3.zero;
